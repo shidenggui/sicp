@@ -3,10 +3,10 @@
   (/ (+ x y) 2))
 
 (define (improve guess x)
-  (/
-   (+
-    (/ x (square guess)) 
-    (* 2 guess))) 3)
+  (/ (+
+      (/ x guess)
+      guess) 2)
+  )
 
 (define (square x) (* x x))
 
@@ -31,4 +31,4 @@
 
 (define (sqrt x) (sqrt-iter 1.0 x))
 
-(sqrt 27.0)
+(sqrt 9.0)
