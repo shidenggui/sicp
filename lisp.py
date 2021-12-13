@@ -1,5 +1,9 @@
+import sys
+
 import operator
 from dataclasses import dataclass
+
+sys.setrecursionlimit(10000)
 
 
 class Env(dict):
@@ -24,7 +28,7 @@ def setup_standard_env() -> Env:
             "+": operator.add,
             "-": operator.sub,
             "*": operator.mul,
-            "/": operator.floordiv,
+            "/": operator.truediv,
             "=": operator.eq,
             "remainder": operator.mod,
             "true": True,
@@ -53,6 +57,11 @@ Number = (int, float)
 
 ## Parsing
 def tokenize(text: str) -> list[str]:
+    # support two procedures inside oneline, like "(define a 3) (define b 4)"
+    def make_begin():
+        return f"(begin {text})"
+
+    text = make_begin()
     return text.replace("(", " ( ").replace(")", " ) ").split()
 
 
@@ -105,15 +114,11 @@ def eval(exp, env: Env):
     # begin
     if exp[0] == "begin":
         return [eval(x, env) for x in exp[1:]][-1]
-    # expression
     if exp[0] == "quote":
         return exp[1:]
     if exp[0] == "let":
         _, bindings, *body = exp
-        for name, value in bindings:
-            env[name] = eval(value, env)
-        return eval(["begin", *body], env)
-    # else exp is List
+        return eval(["begin", *body], Env(dict(bindings), env))
     if exp[0] == "if":
         _, predicate, consequent, alternative = exp
         return eval(consequent, env) if eval(predicate, env) else eval(alternative, env)
@@ -140,11 +145,24 @@ def eval(exp, env: Env):
 
 ## Repl
 def repl():
-    while inputs := input("list.py> "):
+    def is_valid_syntax(text: str) -> bool:
         try:
-            print(eval(parse_tokens(tokenize(inputs)), global_env))
+            parse_tokens(tokenize(text))
+            return True
+        except:
+            return False
+
+    text = ""
+    while inputs := input("lisp.py> " if not text else "         "):
+        text += inputs
+        if not is_valid_syntax(text):
+            continue
+        try:
+            if output := eval(parse_tokens(tokenize(text)), global_env):
+                print(output)
         except Exception as e:
             print(f"; {e}")
+        text = ""
 
 
 repl()
